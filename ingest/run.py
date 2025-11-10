@@ -209,9 +209,25 @@ if not df.empty:
     df_raw_sql["_batch_id"] = "demo"  # simplificado
     df_raw_sql.to_sql("raw_encuestas", con, if_exists="append", index=False)
 
-# === CLEAN ===
+
+#UPSERTS
 if not clean.empty:
-    clean.to_sql("clean_encuestas", con, if_exists="replace", index=False)
+    upsert_sql = (ROOT / "sql" / "10_upserts.sql").read_text(encoding="utf-8")
+    for _, r in clean.iterrows():
+        con.execute(
+            upsert_sql,
+            {
+                "id_respuesta": r["id_respuesta"],
+                "fecha": str(r["fecha"]),
+                "edad": r["edad"],
+                "area": r["area"],
+                "satisfaccion": r["satisfaccion"],
+                "comentario": r["comentario"],
+                "_ingest_ts": r["_ingest_ts"],
+            },
+        )
+    con.commit()
+
 
 # === QUARANTINE ===
 if not quarantine.empty:
